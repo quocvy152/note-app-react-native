@@ -16,13 +16,16 @@ import Note           from '../components/Note';
 import NoteDetail     from '../components/NoteDetail';
 import { 
   NoteProvider, 
-  useNotes 
+  useNotes
 }                     from '../context/NoteProvider';
+import NotFound       from '../components/NotFound';
 
 const NoteScreen = ({ user, navigation }) => {
   const [greet, setGreet] = useState('Tối');
   const [modalVisible, setModalVisible] = useState(false);
-  const { notes, setNotes } = useNotes();
+  const { notes, setNotes, findNotes } = useNotes();
+  const [searchQuery, setSearchQuery] = useState('');
+  let [isHaveResult, setIsHaveResult] = useState(true);
 
   const getTimeToSetGreet = () => {
     let timeStr = 'Tối';
@@ -60,6 +63,32 @@ const NoteScreen = ({ user, navigation }) => {
     navigation.navigate('NoteDetail', { note });
   }
 
+  const handleOnSearchInput = async (text) => {
+    setSearchQuery(text);
+    if(!text.trim()) {
+      setSearchQuery('');
+      setIsHaveResult(true);
+      return await findNotes();
+    }
+    const filterNotes = notes.filter(note => {
+      if(note.title.toLowerCase().includes(text.toLowerCase())) {
+        return note;
+      }
+    })
+
+    if(filterNotes.length) {
+      setNotes([...filterNotes]);
+    } else {
+      setIsHaveResult(false);
+    }
+  }
+
+  const onClear = async () => {
+    setSearchQuery('');
+    setIsHaveResult(true);
+    return await findNotes();
+  }
+
   return (
     <>
       <StatusBar barStyle='dark-content' backgroundColor={colors.LIGHT} />
@@ -67,21 +96,33 @@ const NoteScreen = ({ user, navigation }) => {
         <View style={styles.container}>
           <Text style={styles.header}>{`Buổi ${greet} tốt lành ${user.name}`}</Text>
           {notes.length ? (
-            <SearchBar containerStyle={{ marginVertical: 15 }} />
+            <SearchBar 
+              value={searchQuery}
+              onChangeText={handleOnSearchInput}
+              containerStyle={{ marginVertical: 15 }} 
+              onClear={onClear}
+            />
           ) : null}
-          <FlatList 
-            data={notes}
-            numColumns={2}
-            columnWrapperStyle={{ 
-              justifyContent: 'space-between',
-              marginBottom: 15
-            }}
-            keyEctractor={item => item.id.toString()}
-            renderItem={({ item }) => (
-              <Note onPress={() => openNote(item)} item={item} />
-            )}
-          />
-          {!notes.length ? (
+          
+          {!isHaveResult ? (
+            <View style={[StyleSheet.absoluteFillObject, styles.emptyHeaderContainer]}>
+              <NotFound />
+            </View>
+          ) : (
+              <FlatList 
+                data={notes}
+                numColumns={2}
+                columnWrapperStyle={{ 
+                  justifyContent: 'space-between',
+                  marginBottom: 15
+                }}
+                keyEctractor={item => item.id.toString()}
+                renderItem={({ item }) => (
+                  <Note onPress={() => openNote(item)} item={item} />
+                )}
+              />
+          )}
+          {!notes.length && isHaveResult ? (
             <View style={[StyleSheet.absoluteFillObject, styles.emptyHeaderContainer]}>
               <Text style={styles.emptyHeader}>
                 Thêm ghi chú

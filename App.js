@@ -15,20 +15,24 @@ const Stack = createStackNavigator();
 
 export default function App() {
   const [user, setUser] = useState({});
+  const [isAppFirstTimeOpen, setIsAppFirstTimeOpen] = useState(false);
+
   const findUser = async () => {
     const result = await AsyncStorage.getItem('user');
-    if(result !== null) {
-      setUser(JSON.parse(result));
-    }
+    if(result === null) return setIsAppFirstTimeOpen(true);
+    
+    setUser(JSON.parse(result));
+    setIsAppFirstTimeOpen(false);
   };
 
   useEffect(() => {
+    // AsyncStorage.clear();
     findUser();
   }, []);
 
   const RenderNoteScreen = (props) => <NoteScreen {...props} user={user} />;
 
-  if(!user.name) return <Intro onFinish={findUser} />
+  if(isAppFirstTimeOpen) return <Intro onFinish={findUser} />
   return (
     <NavigationContainer>
       <NoteProvider>
